@@ -1,0 +1,14 @@
+Flask==3.0.3
+requests==2.32.3
+gTTS==2.5.4
+
+# NOTE: This app needs an LLM API key to answer chat questions.
+# Do NOT put a real key in this file. Instead, set your own key as an
+# environment variable before running app.py:
+#
+#   Windows (cmd):        set GEMINI_API_KEY=your-own-key-here
+#   Windows (PowerShell):  $env:GEMINI_API_KEY = "your-own-key-here"
+#   macOS/Linux:           export GEMINI_API_KEY="your-own-key-here"
+#
+# You can get a free Gemini key at https://aistudio.google.com/app/apikey
+# (Anthropic's ANTHROPIC_API_KEY also works as an alternative.)
