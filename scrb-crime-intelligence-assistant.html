@@ -1,0 +1,562 @@
+<!-- SCRB Crime Intelligence Assistant — Hack2Skill Datathon 2026 prototype -->
+<style>
+  :root{
+    --ink:#f7eedc;         /* cream — base background & text-on-accent */
+    --panel:#efe0bf;       /* deeper cream — sidebar / side panels */
+    --panel-2:#e7d3a9;     /* deepest cream — topbar, chips, bubbles, inputbar */
+    --line: rgba(58,20,26,0.16);
+    --paper:#33141a;       /* burgundy-ink — primary text */
+    --paper-dim:#8a6a56;   /* muted warm brown — secondary text */
+    --amber:#7a1f2b;       /* burgundy — primary highlight (tabs, case IDs, citations) */
+    --teal:#2f7d82;        /* teal — interactive accent (buttons, hover, focus, user bubble) */
+    --red:#c0392b;         /* risk-high / mic-active */
+    --green:#5b7d4f;       /* risk-low */
+    --mono: 'IBM Plex Mono', 'Courier New', monospace;
+    --sans: 'IBM Plex Sans', Inter, -apple-system, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  .scrb-root{
+    font-family:var(--sans);
+    background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(47,125,130,0.06), transparent 60%),
+      var(--ink);
+    color:var(--paper);
+    min-height:100%;
+    display:flex;
+    flex-direction:column;
+    border:1px solid var(--line);
+    border-radius:10px;
+    overflow:hidden;
+  }
+  .scrb-topbar{
+    display:flex;align-items:center;gap:14px;
+    padding:14px 18px;
+    background:var(--panel-2);
+    border-bottom:1px solid var(--line);
+  }
+  .scrb-title{
+    font-weight:700;font-size:16px;letter-spacing:0.3px;
+  }
+  .scrb-title small{
+    display:block;font-weight:400;font-size:11px;color:var(--paper-dim);
+    font-family:var(--mono);letter-spacing:1px;
+  }
+  .scrb-controls{margin-left:auto;display:flex;gap:8px;align-items:center;}
+  .scrb-select, .scrb-btn{
+    background:var(--panel);border:1px solid var(--line);color:var(--paper);
+    font-family:var(--mono);font-size:11px;letter-spacing:0.5px;
+    padding:6px 10px;border-radius:5px;cursor:pointer;
+  }
+  .scrb-btn:hover, .scrb-select:hover{border-color:var(--teal);}
+  .scrb-btn.primary{background:var(--teal);color:var(--ink);border-color:var(--teal);font-weight:700;}
+  .scrb-body{display:flex;flex:1;min-height:560px;}
+  .scrb-sidebar{
+    width:230px;flex:0 0 230px;background:var(--panel);
+    border-right:1px solid var(--line);padding:14px;
+    display:flex;flex-direction:column;gap:16px;overflow-y:auto;
+  }
+  .scrb-sec-label{
+    font-family:var(--mono);font-size:10px;letter-spacing:1.5px;
+    color:var(--paper-dim);text-transform:uppercase;margin-bottom:8px;
+    border-bottom:1px dashed var(--line);padding-bottom:6px;
+  }
+  .scrb-chip{
+    display:block;width:100%;text-align:left;
+    background:var(--panel-2);border:1px solid var(--line);color:var(--paper);
+    padding:8px 10px;border-radius:6px;font-size:12px;margin-bottom:6px;cursor:pointer;
+    transition:.15s;
+  }
+  .scrb-chip:hover{border-color:var(--amber);transform:translateX(2px);}
+  .scrb-main{flex:1;display:flex;flex-direction:column;background:
+    repeating-linear-gradient(180deg, transparent, transparent 39px, rgba(51,20,26,0.03) 40px);
+  }
+  .scrb-transcript{flex:1;overflow-y:auto;padding:18px 22px;display:flex;flex-direction:column;gap:14px;}
+  .scrb-msg{max-width:78%;display:flex;flex-direction:column;gap:6px;}
+  .scrb-msg.user{align-self:flex-end;align-items:flex-end;}
+  .scrb-msg.ai{align-self:flex-start;}
+  .scrb-role-tag{font-family:var(--mono);font-size:10px;letter-spacing:1.5px;color:var(--paper-dim);}
+  .scrb-bubble{
+    padding:11px 14px;border-radius:8px;font-size:13.5px;line-height:1.55;
+    border:1px solid var(--line);
+  }
+  .scrb-msg.user .scrb-bubble{background:var(--teal);color:var(--ink);border-color:var(--teal);}
+  .scrb-msg.ai .scrb-bubble{background:var(--panel-2);}
+  .scrb-refs{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px;}
+  .scrb-ref-chip{
+    font-family:var(--mono);font-size:10.5px;background:transparent;
+    border:1px solid var(--amber);color:var(--amber);padding:3px 8px;
+    border-radius:10px;cursor:pointer;
+  }
+  .scrb-ref-chip:hover{background:var(--amber);color:var(--ink);}
+  .scrb-typing{font-family:var(--mono);font-size:11px;color:var(--paper-dim);padding-left:22px;}
+  .scrb-inputbar{
+    display:flex;gap:8px;padding:14px 18px;border-top:1px solid var(--line);
+    background:var(--panel-2);
+  }
+  .scrb-input{
+    flex:1;background:var(--ink);border:1px solid var(--line);color:var(--paper);
+    padding:10px 12px;border-radius:6px;font-size:13px;font-family:var(--sans);
+  }
+  .scrb-input:focus{outline:none;border-color:var(--teal);}
+  .scrb-mic.active{background:var(--red);border-color:var(--red);color:var(--ink);}
+  .scrb-right{
+    width:270px;flex:0 0 270px;background:var(--panel);border-left:1px solid var(--line);
+    display:flex;flex-direction:column;
+  }
+  .scrb-tabs{display:flex;border-bottom:1px solid var(--line);}
+  .scrb-tab{
+    flex:1;text-align:center;padding:10px 4px;font-family:var(--mono);font-size:10px;
+    letter-spacing:1px;color:var(--paper-dim);cursor:pointer;border-bottom:2px solid transparent;
+  }
+  .scrb-tab.active{color:var(--amber);border-bottom-color:var(--amber);}
+  .scrb-panel{padding:14px;overflow-y:auto;flex:1;}
+  .scrb-case-row{
+    border:1px solid var(--line);border-radius:6px;padding:8px 10px;margin-bottom:8px;
+    font-size:11.5px;cursor:pointer;
+  }
+  .scrb-case-row:hover{border-color:var(--teal);}
+  .scrb-case-id{font-family:var(--mono);color:var(--amber);font-size:11px;}
+  .scrb-riskbar{height:5px;border-radius:3px;background:var(--line);margin-top:4px;overflow:hidden;}
+  .scrb-riskbar > div{height:100%;}
+  .scrb-empty{color:var(--paper-dim);font-size:11.5px;font-style:italic;padding:10px 4px;}
+  .scrb-hint{color:var(--paper-dim);font-size:11px;padding:8px 4px;}
+  ::-webkit-scrollbar{width:8px;}
+  ::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px;}
+</style>
+
+<div class="scrb-root">
+  <div class="scrb-topbar">
+    <div class="scrb-title">SCRB Crime Intelligence Assistant
+      <small>KARNATAKA STATE CRIME RECORDS</small>
+    </div>
+    <div class="scrb-controls">
+      <select class="scrb-select" id="scrb-role">
+        <option value="Investigator">Role: Investigator</option>
+        <option value="Analyst">Role: Analyst</option>
+        <option value="Supervisor">Role: Supervisor</option>
+        <option value="Policymaker">Role: Policymaker</option>
+      </select>
+      <select class="scrb-select" id="scrb-lang" title="Chat text always switches language. Spoken audio needs a Kannada voice installed on this device.">
+        <option value="English">EN</option>
+        <option value="Kannada">ಕನ್ನಡ</option>
+      </select>
+      <button class="scrb-btn" id="scrb-export">⤓ Export Transcript</button>
+      <button class="scrb-btn" id="scrb-reset">⟳ New Session</button>
+    </div>
+  </div>
+
+  <div class="scrb-body">
+    <div class="scrb-sidebar">
+      <div>
+        <div class="scrb-sec-label">Popular Cases</div>
+        <select class="scrb-select" id="scrb-popular-cases" style="width:100%;margin-bottom:14px;">
+          <option value="">Select a case…</option>
+        </select>
+      </div>
+      <div>
+        <div class="scrb-sec-label">Quick Queries</div>
+        <button class="scrb-chip" data-q="Which accused individuals have prior records in more than one case?">Repeat offenders across cases</button>
+        <button class="scrb-chip" data-q="Show me a summary of cyber fraud cases and any linked financial transactions.">Cyber fraud + financial links</button>
+        <button class="scrb-chip" data-q="Which districts have the highest number of open cases and what crime types dominate there?">District hotspot summary</button>
+        <button class="scrb-chip" data-q="Give me the risk profile of the highest risk offender on record.">Highest-risk offender</button>
+        <button class="scrb-chip" data-q="Are there any cases connected to REC-1007?">Network around REC-1007</button>
+      </div>
+      <div>
+        <div class="scrb-sec-label">Session</div>
+        <div class="scrb-hint" id="scrb-session-hint">Role-based access shapes how much detail the assistant surfaces. Investigators see full identifiers, Policymakers see aggregated trends only.</div>
+      </div>
+    </div>
+
+    <div class="scrb-main">
+      <div class="scrb-transcript" id="scrb-transcript"></div>
+      <div class="scrb-typing" id="scrb-typing" style="display:none;">SCRB-AI is analysing records…</div>
+      <div class="scrb-inputbar">
+        <button class="scrb-btn scrb-mic" id="scrb-mic" title="Voice input">🎙</button>
+        <button class="scrb-btn" id="scrb-stop-voice" title="Stop voice assistant">⏹ Stop</button>
+        <input class="scrb-input" id="scrb-input" placeholder="Ask about crime patterns, offenders, cases, or districts…" />
+        <button class="scrb-btn primary" id="scrb-send">Send</button>
+      </div>
+    </div>
+
+    <div class="scrb-right">
+      <div class="scrb-tabs">
+        <div class="scrb-tab active" data-tab="ledger">CASE LEDGER</div>
+      </div>
+      <div class="scrb-panel" id="scrb-panel"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+
+let DB = []; // populated from GET /api/cases on startup — see loadCases()
+
+async function loadCases(){
+  try{
+    const resp = await fetch('/api/cases');
+    if(!resp.ok) throw new Error('bad status ' + resp.status);
+    DB = await resp.json();
+  }catch(e){
+    console.error('Failed to load cases from backend:', e);
+    DB = [];
+  }
+}
+
+let history = []; // {role:'user'|'assistant', text}
+let lastReferenced = [];
+let viewedHistory = []; // recently referenced case ids, most recent first
+const els = {
+  transcript: document.getElementById('scrb-transcript'),
+  typing: document.getElementById('scrb-typing'),
+  input: document.getElementById('scrb-input'),
+  send: document.getElementById('scrb-send'),
+  mic: document.getElementById('scrb-mic'),
+  stopVoice: document.getElementById('scrb-stop-voice'),
+  role: document.getElementById('scrb-role'),
+  lang: document.getElementById('scrb-lang'),
+  panel: document.getElementById('scrb-panel'),
+  tabs: document.querySelectorAll('.scrb-tab'),
+  export: document.getElementById('scrb-export'),
+  reset: document.getElementById('scrb-reset'),
+  popularCases: document.getElementById('scrb-popular-cases'),
+};
+
+function riskColor(r){ return r>=80?'var(--red)':r>=55?'var(--amber)':'var(--green)'; }
+
+function maskName(name, role){
+  if(role==='Policymaker' || role==='Analyst'){
+    // aggregate view: mask individual identity
+    let hash=0; for(const c of name) hash = (hash*31 + c.charCodeAt(0))>>>0;
+    return 'Subject-'+(hash%900+100);
+  }
+  return name;
+}
+
+function retrieve(query){
+  const q = query.toLowerCase();
+  const idMatch = query.match(/REC-\d{4}/gi);
+  let scored = DB.map(r=>{
+    let hay = [r.id, r.district, r.station, r.crimeType, r.summary, r.status,
+      ...r.accused.map(a=>a.name)].join(' ').toLowerCase();
+    let score = 0;
+    q.split(/\W+/).filter(w=>w.length>2).forEach(w=>{ if(hay.includes(w)) score++; });
+    if(idMatch && idMatch.map(x=>x.toUpperCase()).includes(r.id)) score += 10;
+    return {r, score};
+  }).filter(x=>x.score>0).sort((a,b)=>b.score-a.score).slice(0,5);
+  if(scored.length===0) scored = DB.slice(0,3).map(r=>({r, score:0})); // fallback context
+  return scored.map(x=>x.r);
+}
+
+function recordContext(r, role){
+  const accusedStr = r.accused.length
+    ? r.accused.map(a=>`${maskName(a.name, role)} (age ${a.age}, prior offences: ${a.prior}, risk score: ${a.risk}/100)`).join('; ')
+    : 'unidentified';
+  const finStr = r.financial.length
+    ? r.financial.map(f=>`${f.amt} moved from ${f.from} to ${f.to} on ${f.date}`).join('; ')
+    : 'none flagged';
+  return `[${r.id}] District: ${r.district}, Station: ${r.station}, Date: ${r.date}, Crime type: ${r.crimeType}, Status: ${r.status}. Summary: ${r.summary} Accused: ${accusedStr}. Victims: ${r.victims}. Linked cases: ${r.linked.join(', ')||'none'}. Financial flags: ${finStr}.`;
+}
+
+// Safety net: even with formatting rules in the system prompt, an LLM can
+// still slip into Markdown occasionally. Strip common Markdown syntax so
+// the chat bubble always shows clean plain text.
+function stripMarkdown(text){
+  return text
+    .replace(/^#{1,6}\s*/gm, '')        // headings
+    .replace(/\*\*\*(.*?)\*\*\*/g, '$1') // bold+italic
+    .replace(/\*\*(.*?)\*\*/g, '$1')     // bold
+    .replace(/\*(.*?)\*/g, '$1')         // italic
+    .replace(/__(.*?)__/g, '$1')         // bold underscore
+    .replace(/_(.*?)_/g, '$1')           // italic underscore
+    .replace(/^\s*[-*]\s+/gm, '')        // bullet markers
+    .replace(/`{1,3}([^`]*)`{1,3}/g, '$1') // inline/code fences
+    .replace(/[#*_`]/g, '')              // any leftover stray symbols
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim();
+}
+
+function addMessage(role, text, refs){
+  const wrap = document.createElement('div');
+  wrap.className = 'scrb-msg ' + (role==='user'?'user':'ai');
+  const tag = document.createElement('div');
+  tag.className = 'scrb-role-tag';
+  tag.textContent = role==='user' ? (els.role.value.toUpperCase()) : 'SCRB-AI';
+  const bubble = document.createElement('div');
+  bubble.className = 'scrb-bubble';
+  bubble.textContent = role==='user' ? text : stripMarkdown(text);
+  wrap.appendChild(tag); wrap.appendChild(bubble);
+  if(refs && refs.length){
+    const refWrap = document.createElement('div');
+    refWrap.className = 'scrb-refs';
+    refs.forEach(id=>{
+      const chip = document.createElement('button');
+      chip.className = 'scrb-ref-chip';
+      chip.textContent = id;
+      chip.onclick = ()=>{ switchTab('ledger'); highlightCase(id); };
+      refWrap.appendChild(chip);
+    });
+    wrap.appendChild(refWrap);
+  }
+  els.transcript.appendChild(wrap);
+  els.transcript.scrollTop = els.transcript.scrollHeight;
+}
+
+async function callBackend(userText){
+  const role = els.role.value;
+  const lang = els.lang.value;
+
+  const resp = await fetch("/api/chat", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({
+      message: userText,
+      role: role,
+      lang: lang,
+      history: history // [{role:'user'|'assistant', text:'...'}]
+    })
+  });
+  if(!resp.ok) throw new Error('Backend returned status ' + resp.status);
+  const data = await resp.json();
+  return data; // {answer, citedIds}
+}
+
+async function handleSend(){
+  const text = els.input.value.trim();
+  if(!text) return;
+  els.input.value = '';
+  addMessage('user', text);
+  history.push({role:'user', text});
+  els.typing.style.display = 'block';
+  els.send.disabled = true;
+
+  // Local preview of likely-relevant cases (same records the backend will
+  // retrieve from SQLite) so the Evidence Board can update immediately.
+  const ctx = retrieve(text);
+  lastReferenced = ctx;
+  renderLedger();
+  if(ctx.length){ trackHistory(ctx[0].id); renderPopularCases(); }
+
+  try{
+    const { answer, citedIds } = await callBackend(text);
+    const cited = (citedIds && citedIds.length) ? citedIds : ctx.map(r=>r.id);
+    addMessage('assistant', answer, cited);
+    history.push({role:'assistant', text: answer});
+    speak(answer);
+  }catch(e){
+    console.error(e);
+    addMessage('assistant', "Connection to the backend was interrupted. Make sure app.py is running and reachable, then retry your query.");
+  }finally{
+    els.typing.style.display = 'none';
+    els.send.disabled = false;
+  }
+}
+
+// ---------- voice ----------
+let recognizing = false, recognizer = null;
+let voiceListPromise = null;
+let currentAudio = null; // server-side (gTTS) playback, used for Kannada
+
+// Voice lists load asynchronously in most browsers — this resolves once
+// they're actually available instead of racing an empty array.
+function getVoices(){
+  if(voiceListPromise) return voiceListPromise;
+  voiceListPromise = new Promise(resolve=>{
+    if(!('speechSynthesis' in window)){ resolve([]); return; }
+    const existing = speechSynthesis.getVoices();
+    if(existing.length){ resolve(existing); return; }
+    speechSynthesis.onvoiceschanged = ()=> resolve(speechSynthesis.getVoices());
+    // Some browsers never fire onvoiceschanged — don't hang forever.
+    setTimeout(()=> resolve(speechSynthesis.getVoices()), 1000);
+  });
+  return voiceListPromise;
+}
+
+function findVoice(voices, langPrefix){
+  return voices.find(v=> v.lang && v.lang.toLowerCase().startsWith(langPrefix))
+      || voices.find(v=> v.name && v.name.toLowerCase().includes('english'));
+}
+
+let kannadaVoiceWarningShown = false;
+
+function stopAllVoiceOutput(){
+  if('speechSynthesis' in window) speechSynthesis.cancel();
+  if(currentAudio){ currentAudio.pause(); currentAudio = null; }
+}
+
+function initVoice(){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){ els.mic.disabled = true; els.mic.title = "Voice input not supported on this browser"; return; }
+  recognizer = new SR();
+  recognizer.continuous = false;
+  recognizer.onresult = (e)=>{ els.input.value = e.results[0][0].transcript; };
+  recognizer.onend = ()=>{ recognizing=false; els.mic.classList.remove('active'); };
+}
+els.mic.addEventListener('click', ()=>{
+  if(!recognizer) return;
+  recognizer.lang = els.lang.value==='Kannada' ? 'kn-IN' : 'en-IN';
+  if(recognizing){ recognizer.stop(); recognizing=false; els.mic.classList.remove('active'); }
+  else{ recognizer.start(); recognizing=true; els.mic.classList.add('active'); }
+});
+els.stopVoice.addEventListener('click', ()=>{
+  // Halts whatever the voice assistant is currently doing: stop it from
+  // speaking (browser TTS or server-side Kannada audio), and stop it from
+  // listening if the mic is active.
+  stopAllVoiceOutput();
+  if(recognizing && recognizer){ recognizer.stop(); recognizing=false; els.mic.classList.remove('active'); }
+});
+
+async function speak(text){
+  const clean = stripMarkdown(text).replace(/\[REC-\d{4}\]/g, '');
+  const isKannada = els.lang.value==='Kannada';
+  stopAllVoiceOutput();
+
+  if(isKannada){
+    // Most Windows/browser setups have no local Kannada voice installed, so
+    // the browser's speechSynthesis silently produces nothing for 'kn-IN'.
+    // Use server-side gTTS instead — it only needs the server to have
+    // internet access, not the user's machine to have a voice installed.
+    try{
+      const res = await fetch('/api/tts', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ text: clean, lang: 'kn' })
+      });
+      if(!res.ok) throw new Error('TTS request failed');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      currentAudio = new Audio(url);
+      currentAudio.play();
+    } catch(err){
+      if(!kannadaVoiceWarningShown){
+        kannadaVoiceWarningShown = true;
+        addMessage('assistant', "Note: couldn't reach the Kannada voice service (check the server's internet connection). The chat text itself is still in Kannada.");
+      }
+    }
+    return;
+  }
+
+  if(!('speechSynthesis' in window)) return;
+  const u = new SpeechSynthesisUtterance(clean);
+  u.lang = 'en-IN';
+  u.rate = 1.02;
+  const voices = await getVoices();
+  const voice = findVoice(voices, 'en');
+  if(voice) u.voice = voice;
+  speechSynthesis.speak(u);
+}
+
+
+// ---------- right panel ----------
+function switchTab(name){
+  els.tabs.forEach(t=>t.classList.toggle('active', t.dataset.tab===name));
+  renderLedger();
+}
+els.tabs.forEach(t=> t.addEventListener('click', ()=> switchTab(t.dataset.tab)));
+
+function renderLedger(){
+  const role = els.role.value;
+  let html = '<div class="scrb-sec-label">Case Ledger</div>';
+  DB.forEach(r=>{
+    const topRisk = r.accused.length ? Math.max(...r.accused.map(a=>a.risk)) : null;
+    html += `<div class="scrb-case-row" data-id="${r.id}">
+      <div class="scrb-case-id">${r.id} · ${r.crimeType}</div>
+      <div style="color:var(--paper-dim);">${r.district} — ${r.status}</div>
+      ${topRisk!==null ? `<div class="scrb-riskbar"><div style="width:${topRisk}%;background:${riskColor(topRisk)};"></div></div>` : ''}
+    </div>`;
+  });
+  els.panel.innerHTML = html;
+  els.panel.querySelectorAll('.scrb-case-row').forEach(row=>{
+    row.addEventListener('click', ()=>{
+      els.input.value = `Tell me about ${row.dataset.id}`;
+      handleSend();
+    });
+  });
+}
+
+function highlightCase(id){
+  els.panel.querySelectorAll('.scrb-case-row').forEach(row=>{
+    row.style.borderColor = (row.dataset.id === id) ? 'var(--amber)' : 'var(--line)';
+  });
+  const target = els.panel.querySelector(`.scrb-case-row[data-id="${id}"]`);
+  if(target) target.scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+// A case counts as "solved" once it's been chargesheeted; everything else
+// (under investigation, open/unidentified suspect, etc.) is "unsolved".
+function isSolved(status){ return /chargesheet/i.test(status); }
+
+// Keep a short, deduped, most-recent-first list of cases the user has
+// actually asked about, so the dropdown can surface a "History" group.
+function trackHistory(id){
+  viewedHistory = [id, ...viewedHistory.filter(x=>x!==id)].slice(0,6);
+}
+
+function renderPopularCases(){
+  if(!els.popularCases) return;
+  const solved = DB.filter(r=>isSolved(r.status));
+  const unsolved = DB.filter(r=>!isSolved(r.status));
+  const recent = viewedHistory.map(id=>DB.find(r=>r.id===id)).filter(Boolean);
+
+  const optionFor = r => `<option value="${r.id}">${r.id} — ${r.crimeType} (${r.district})</option>`;
+
+  let html = '<option value="">Select a case…</option>';
+  if(recent.length){
+    html += `<optgroup label="History">${recent.map(optionFor).join('')}</optgroup>`;
+  }
+  if(unsolved.length){
+    html += `<optgroup label="Unsolved">${unsolved.map(optionFor).join('')}</optgroup>`;
+  }
+  if(solved.length){
+    html += `<optgroup label="Solved">${solved.map(optionFor).join('')}</optgroup>`;
+  }
+  els.popularCases.innerHTML = html;
+}
+
+els.popularCases && els.popularCases.addEventListener('change', ()=>{
+  const id = els.popularCases.value;
+  if(!id) return;
+  els.input.value = `Tell me about ${id}`;
+  handleSend();
+  els.popularCases.value = '';
+});
+
+// ---------- export ----------
+els.export.addEventListener('click', ()=>{
+  const w = window.open('', '_blank');
+  const rows = history.map(h=>`<p><b>${h.role==='user'?els.role.value.toUpperCase():'SCRB-AI'}:</b> ${h.text.replace(/</g,'&lt;')}</p>`).join('');
+  w.document.write(`<html><head><title>SCRB Transcript</title></head>
+    <body style="font-family:monospace;padding:30px;max-width:700px;">
+    <h2>SCRB Crime Intelligence Assistant — Session Transcript</h2>
+    <p style="color:#666;">Generated ${new Date().toLocaleString()} · Role: ${els.role.value} · Demo data only</p>
+    <hr>${rows || '<p>No conversation yet.</p>'}</body></html>`);
+  w.document.close();
+  w.print();
+});
+
+els.reset.addEventListener('click', ()=>{
+  history = []; viewedHistory = []; els.transcript.innerHTML=''; els.input.value='';
+  renderPopularCases();
+  addMessage('assistant', "Session reset. Ask me about cases, offenders, districts, or crime patterns in the SCRB demo dataset.");
+});
+
+els.send.addEventListener('click', handleSend);
+els.input.addEventListener('keydown', e=>{ if(e.key==='Enter') handleSend(); });
+document.querySelectorAll('.scrb-chip').forEach(c=>{
+  c.addEventListener('click', ()=>{ els.input.value = c.dataset.q; handleSend(); });
+});
+
+initVoice();
+(async function init(){
+  await loadCases();
+  renderLedger();
+  renderPopularCases();
+  if(DB.length === 0){
+    addMessage('assistant', "Couldn't reach the case database (GET /api/cases failed). Make sure app.py is running at this address, then refresh.");
+  }else{
+    addMessage('assistant', "Welcome to the SCRB Crime Intelligence Assistant demo. Ask a question about the sample case set, or try a quick query on the left.");
+  }
+})();
+
+})();
+</script>

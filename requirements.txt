@@ -1,0 +1,6 @@
+Flask==3.0.3
+requests==2.32.3
+gTTS==2.5.4
+
+in folder type cmd use this prompt first 
+set GEMINI_API_KEY=The api key is in the drive file 
